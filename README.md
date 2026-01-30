@@ -20,6 +20,8 @@
 ## Manager
 В конце графа всегда получает полный контекст сообщений пользователя и делает вывод исходя из оценок по каждому из вопросов
 
+## Граф
+![alt text](https://raw.githubusercontent.com/SosisterRapStar/InterviewAgent/912913dcf545ea3bba9c0ef195f2fee5312ecffd/graph.png)
 
 # Как поднять
 1. Клонируйте репозиторий
