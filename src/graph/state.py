@@ -6,14 +6,15 @@ class InterviewState(TypedDict):
     participant_name: str
 
     # Вводные данные кандидата
+    # Как их правда доставать?
+    step_counter: int 
     position: str
     grade: str  # Junior / Middle / Senior
     experience: str
     
     # История диалога
     turns: List[Turn]
-    conversation_history: List[dict]  # Формат LangChain messages
-    
+    conversation_history: List[dict]
     # Текущее сообщение пользователя (для обработки в цикле)
     current_user_message: str
     
