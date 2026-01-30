@@ -50,9 +50,9 @@ def get_feedback_prompt() -> str:
    - Engagement (вовлечённость): высокая/средняя/низкая
 
 5. **Итоговая оценка**
-   - Какой РЕАЛЬНЫЙ уровень кандидата? (Junior/Middle/Senior)
+   - Какой РЕАЛЬНЫЙ уровень кандидата? (можешь использовать: Trainee, Below Junior, Junior, Junior+, Middle-, Middle, Middle+, Senior-, Senior, Senior+, Lead, Architect)
    - Соответствует ли заявленному грейду?
-   - Рекомендация: Hire / No Hire / Strong Hire
+   - Рекомендация: можешь использовать любую формулировку (Strong Hire / Hire / Maybe / Conditional Hire / No Hire / Strong No Hire)
    - Уверенность в оценке (0-100%)
    - Roadmap: какие темы нужно изучить/подтянуть?
 
@@ -60,13 +60,14 @@ def get_feedback_prompt() -> str:
 - Будь честен: если кандидат не соответствует заявленному уровню - укажи реальный
 - Для каждого пробела в знаниях ОБЯЗАТЕЛЬНО укажи правильный ответ
 - Roadmap должен быть конкретным (не "изучи Python", а "изучи декораторы, генераторы")
+- grade, hiring_recommendation, clarity, honesty, engagement - свободный текст (используй любые формулировки)
 
 ## ФОРМАТ ОТВЕТА:
 ВЕРНИ ТОЛЬКО ВАЛИДНЫЙ JSON В СЛЕДУЮЩЕМ ФОРМАТЕ (БЕЗ MARKDOWN, БЕЗ ```json):
 {
   "thinking": "Подробный анализ по 5 пунктам выше",
-  "grade": "Junior|Middle|Senior",
-  "hiring_recommendation": "Hire|No Hire|Strong Hire",
+  "grade": "любой текст, описывающий уровень кандидата (например: Junior+, Middle-, Below Junior, etc.)",
+  "hiring_recommendation": "любой текст с рекомендацией (например: Strong Hire, Maybe, No Hire, etc.)",
   "confidence_score": 0-100,
   "confirmed_skills": ["навык1", "навык2", ...],
   "knowledge_gaps": [
@@ -76,8 +77,8 @@ def get_feedback_prompt() -> str:
       "correct_answer": "правильный ответ"
     }
   ],
-  "clarity": "отлично|хорошо|средне|плохо",
-  "honesty": "честный|уклончивый",
-  "engagement": "высокая|средняя|низкая",
+  "clarity": "любой текст (например: отлично, хорошо, средне, плохо, очень плохо)",
+  "honesty": "любой текст (например: честный, уклончивый, нечестный)",
+  "engagement": "любой текст (например: высокая, средняя, низкая, очень низкая)",
   "roadmap": ["тема1 для изучения", "тема2 для изучения", ...]
 }"""

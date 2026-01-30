@@ -5,36 +5,27 @@ from src.structs.structs import Turn, QuestionResult
 class InterviewState(TypedDict):
     participant_name: str
 
-    # Вводные данные кандидата
-    # Как их правда доставать?
     step_counter: int 
     position: str
-    grade: str  # Junior / Middle / Senior
+    grade: str # только изначальный грейд
     experience: str
     
-    # История диалога
     turns: List[Turn]
     conversation_history: List[dict]
-    # Текущее сообщение пользователя (для обработки в цикле)
     current_user_message: str
     
-    # Метрики
-    current_difficulty: int  # 1-5
+    current_difficulty: int
     questions_asked: int
     topics_covered: List[str]
     
-    # Результаты оценки
     question_results: List[QuestionResult]
     detected_hallucinations: List[str]
     off_topic_attempts: int
     
-    # Внутренняя коммуникация между агентами
     observer_analysis: str
     calibrator_recommendation: str
     
-    # Финальный фидбэк
     final_feedback: Optional[str]
     
-    # Флаги состояния
     is_finished: bool
-    stop_reason: str  # "user_stopped" / "questions_exhausted"
+    stop_reason: str

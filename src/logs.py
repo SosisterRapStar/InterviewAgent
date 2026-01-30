@@ -6,6 +6,13 @@ from typing import Dict, Any, TYPE_CHECKING
 from src.structs.structs import LogUnit
 if TYPE_CHECKING:
     from src.graph.state import InterviewState
+import logging 
+import sys 
+
+logger = logging.getLogger('agents')
+stderr_handler = logging.StreamHandler(sys.stderr)
+logger.setLevel(logging.DEBUG)
+
 
 # лог может быть постоянной памятью
 # нужно суммаризировать ответы пользователя 
@@ -19,8 +26,13 @@ class InterviewLogger:
         dir_path = os.path.dirname(output_path)
         if dir_path:
             os.makedirs(dir_path, exist_ok=True)
+    
+    def log_agent_action(self, role: str, event: str, info: str):
+        logger.info(f"{json.dumps(info)}\n")
 
     def update_log_unit(self, state: "InterviewState"):
+        logger.info(f"created log unit checkpoint")
+
         self.current_unit = LogUnit(
             participant_name=state["participant_name"],
             turns=[asdict(turn) for turn in state["turns"]],

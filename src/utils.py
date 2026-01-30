@@ -1,15 +1,16 @@
-from langchain_openai import ChatOpenAI
-from src.config import OPENROUTER_TOKEN
+from langchain_mistralai import ChatMistralAI
+from src.config import MISTRAL_TOKEN
 
 
-modelv1 = "moonshotai/kimi-k2:free"
-modelv2 = "tngtech/deepseek-r1t2-chimera:free"
+# Mistral models
+# https://docs.mistral.ai/getting-started/models/models_overview/
+MISTRAL_MODEL = "mistral-large-latest"  # Или "open-mistral-7b", "mistral-medium-latest"
 
-def get_openrouter_llm(model=modelv2):
-    return ChatOpenAI(
+def get_openrouter_llm(model=MISTRAL_MODEL):
+    """Возвращает LLM для использования в агентах (теперь Mistral)."""
+    return ChatMistralAI(
         model=model,
-        api_key=OPENROUTER_TOKEN,
-        base_url="https://openrouter.ai/api/v1",
+        api_key=MISTRAL_TOKEN,
         temperature=0
     )
 

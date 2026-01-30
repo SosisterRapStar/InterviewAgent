@@ -1,5 +1,28 @@
-from typing import List, Literal
+from typing import List, Literal, Optional
 from pydantic import BaseModel, Field
+
+
+class UserIntentSchema(BaseModel):
+    """Схема для определения намерений пользователя (VibeMaster)."""
+    thinking: str = Field(
+        description="Детальный анализ по 6 пунктам: что сказал → прямые сигналы → косвенные сигналы → эмоции → что НЕ остановка → итоговое решение"
+    )
+    wants_to_stop: bool = Field(
+        description="Хочет ли пользователь завершить интервью (true/false)"
+    )
+    stop_reason: Optional[str] = Field(
+        default=None,
+        description="Причина завершения: tired/not_ready/too_difficult/no_time/technical_issues/other"
+    )
+    emotional_state: str = Field(
+        default="comfortable",
+        description="Эмоциональное состояние: comfortable/stressed/overwhelmed/confused/tired"
+    )
+    confidence_level: int = Field(
+        default=80,
+        ge=0, le=100,
+        description="Уверенность в определении намерения (0-100%)"
+    )
 
 
 class MentorAnalysisSchema(BaseModel):
@@ -38,21 +61,26 @@ class MentorAnalysisSchema(BaseModel):
         description="Нужна ли подсказка кандидату"
     )
 
-class GreetingResponse(BaseModel):
+class InterviewerGreetingSchema(BaseModel):
+    """Схема для приветствия с валидацией роли."""
     thinking: str = Field(
-        description="Рассуждения: 1) Что сказал Observer? 2) Как сформулировать ответ/вопрос?"
+        description="Пошаговые рассуждения: 1) Валидация роли и грейда 2) Существует ли такая роль в IT 3) Выбор первого вопроса 4) Формулировка приветствия"
     )
-    is_role_valid: str = Field(
-        description="Валидна ли роль в IT"
+    response: str = Field(
+        description="Текст сообщения для кандидата (приветствие + вопрос ИЛИ объяснение почему не IT)"
+    )
+    is_role_exists: bool = Field(
+        description="Существует ли указанная роль в IT сфере (true/false). False если роль не относится к IT или не существует."
     )
 
 
 class InterviewerResponseSchema(BaseModel):
+    """Схема для обычных ответов интервьюера (без валидации роли)."""
     thinking: str = Field(
-        description="Рассуждения: 1) Что сказал Observer? 2) Как сформулировать ответ/вопрос?"
+        description="Пошаговые рассуждения: 1) Что сказал Mentor? 2) Как отреагировать? 3) Какой следующий вопрос?"
     )
     response: str = Field(
-        description="Текст сообщения для кандидата"
+        description="Текст реакции и/или следующего вопроса для кандидата"
     )
 
 
@@ -66,11 +94,11 @@ class FinalFeedbackSchema(BaseModel):
     thinking: str = Field(
         description="Анализ: 1) Общее впечатление 2) Сильные стороны 3) Слабые стороны 4) Итоговая оценка"
     )
-    grade: Literal["Junior", "Middle", "Senior"] = Field(
-        description="Реальный уровень кандидата"
+    grade: str = Field(
+        description="Реальный уровень кандидата (например: Trainee, Below Junior, Junior, Junior+, Middle, Middle+, Senior, Senior+, Lead, Architect)"
     )
-    hiring_recommendation: Literal["Hire", "No Hire", "Strong Hire"] = Field(
-        description="Рекомендация по найму"
+    hiring_recommendation: str = Field(
+        description="Рекомендация по найму (например: Strong Hire, Hire, Maybe, Conditional Hire, No Hire, Strong No Hire)"
     )
     confidence_score: int = Field(
         ge=0, le=100,
@@ -84,14 +112,14 @@ class FinalFeedbackSchema(BaseModel):
         default_factory=list,
         description="Пробелы в знаниях с правильными ответами"
     )
-    clarity: Literal["отлично", "хорошо", "средне", "плохо"] = Field(
-        description="Ясность изложения"
+    clarity: str = Field(
+        description="Ясность изложения (например: отлично, хорошо, средне, плохо, очень плохо)"
     )
-    honesty: Literal["честный", "уклончивый"] = Field(
-        description="Честность"
+    honesty: str = Field(
+        description="Честность (например: очень честный, честный, частично честный, уклончивый, нечестный)"
     )
-    engagement: Literal["высокая", "средняя", "низкая"] = Field(
-        description="Вовлечённость"
+    engagement: str = Field(
+        description="Вовлечённость (например: очень высокая, высокая, средняя, низкая, очень низкая)"
     )
     
     roadmap: List[str] = Field(

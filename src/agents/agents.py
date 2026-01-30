@@ -5,13 +5,20 @@ from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 from src.promts.mentor import get_mentor_persona, get_analyze_prompt
 from src.promts.interviewer import get_interviewer_persona, get_greeting_prompt, get_response_prompt
 from src.promts.manager import get_manager_persona, get_feedback_prompt
+from src.promts.vibemaster import get_vibemaster_persona, get_vibe_analysis_prompt
 from src.utils import get_openrouter_llm
 from src.structs.structs import MentorAnalysis, CalibrationResult, FinalFeedback
-from src.structs.schemas import MentorAnalysisSchema, InterviewerResponseSchema, FinalFeedbackSchema
+from src.structs.schemas import (
+    MentorAnalysisSchema, 
+    InterviewerGreetingSchema,
+    InterviewerResponseSchema, 
+    FinalFeedbackSchema, 
+    UserIntentSchema
+)
 import re
 import json
 import logging 
-import time
+import asyncio
 
 logger = logging.getLogger(__name__)
 
@@ -47,8 +54,8 @@ class Mentor(BaseAgent):
         messages = [SystemMessage(content=system_prompt)]
         messages.append(HumanMessage(content=self._get_context(state['participant_name'], state['experience'])))
         return messages
-    
-    def analyze_and_calibrate(
+
+    async def analyze_and_calibrate(
         self, 
         state: "InterviewState"
     ) -> tuple[MentorAnalysis, CalibrationResult, str]:
@@ -86,10 +93,10 @@ class Mentor(BaseAgent):
                 MentorAnalysisSchema,
                 method="json_mode"
             )
-            result = structured_llm.invoke(messages)
+            result = await structured_llm.ainvoke(messages)
         except Exception as e:
             # Fallback: обычный вызов и ручной парсинг
-            response = self.llm.invoke(messages)
+            response = await self.llm.ainvoke(messages)
             
             content = response.content
             content = re.sub(r'```json\s*', '', content)
@@ -139,11 +146,6 @@ class Mentor(BaseAgent):
 
 
 class Interviewer(BaseAgent):
-    """Агент-интервьюер (видимый пользователю).
-    
-    Генерирует вопросы и ответы через LangChain Messages.
-    """
-
     def _get_user_info(self, state: "InterviewState") -> str:
         return f"""## ИНФОРМАЦИЯ О КАНДИДАТЕ
                 Имя: {state["participant_name"]}
@@ -151,17 +153,13 @@ class Interviewer(BaseAgent):
                 Уровень: {state["grade"]}
                 Опыт: {state["experience"]}"""
 
-    def generate_greeting(self, state: "InterviewState") -> InterviewerResponseSchema:
-        """Генерирует приветствие с повторными попытками."""
-        # Системный промпт - персона Interviewer
+    async def generate_greeting(self, state: "InterviewState") -> InterviewerGreetingSchema:
         system_prompt = get_interviewer_persona(state["position"], state["grade"])
         messages = [SystemMessage(content=system_prompt)]
         
-        # Контекст о кандидате
         context = self._get_user_info(state)
         messages.append(SystemMessage(content=context))
         
-        # Запрос на приветствие
         greeting_request = get_greeting_prompt(state["position"], state["grade"])
         messages.append(HumanMessage(content=greeting_request))
         
@@ -169,10 +167,10 @@ class Interviewer(BaseAgent):
         for attempt in range(MAX_RETRIES):
             try:
                 structured_llm = self.llm.with_structured_output(
-                    InterviewerResponseSchema,
+                    InterviewerGreetingSchema,  # ← Используем схему с is_role_exists
                     method="json_mode"
                 )
-                result = structured_llm.invoke(messages)
+                result = await structured_llm.ainvoke(messages)
                 return result  # Успех
                 
             except Exception as e:
@@ -181,21 +179,20 @@ class Interviewer(BaseAgent):
                 # Пробуем fallback
                 if attempt < MAX_RETRIES - 1:
                     try:
-                        response = self.llm.invoke(messages)
+                        response = await self.llm.ainvoke(messages)
                         content = response.content
                         content = re.sub(r'```json\s*', '', content)
                         content = re.sub(r'```\s*$', '', content)
                         
                         parsed = json.loads(content)
-                        result = InterviewerResponseSchema(**parsed)
+                        result = InterviewerGreetingSchema(**parsed)
                         logger.info(f"Fallback парсинг успешен на попытке {attempt + 1}")
                         return result
                     except Exception as fallback_error:
                         logger.warning(f"Fallback провалился: {fallback_error}")
-                        time.sleep(RETRY_DELAY)
+                        await asyncio.sleep(RETRY_DELAY)
                         continue
         
-        # Все попытки провалились
         logger.error(f"Interviewer.generate_greeting: все {MAX_RETRIES} попытки провалились")
         raise Exception(f"Failed to generate greeting after {MAX_RETRIES} attempts")
 
@@ -209,26 +206,23 @@ class Interviewer(BaseAgent):
                 Рекомендуемая тема: {calibration.topic_recommendation}
                 Нужна подсказка: {"да" if calibration.should_give_hint else "нет"}"""
         
-    def generate_response(
+    async def generate_response(
         self, 
         state: "InterviewState", 
         mentor_analysis: MentorAnalysis, 
         calibration: CalibrationResult
     ) -> InterviewerResponseSchema:
-        # персона Interviewer всегда в контексте
+        """Генерирует ответ на основе анализа Mentor (БЕЗ валидации роли)."""
         persona_prompt = get_interviewer_persona(state["position"], state["grade"])
         messages = [SystemMessage(content=persona_prompt)]
         
-        # История диалога
         recent_turns = state["turns"][-3:] if state["turns"] else []
         for turn in recent_turns:
             messages.append(AIMessage(content=turn.agent_visible_message))
             if turn.user_message:
                 messages.append(HumanMessage(content=turn.user_message))
         
-        # Формируем инструкции от Mentor
         mentor_instructions = self._get_mentor_instructions(mentor_analysis, calibration)
-        # Запрос на генерацию ответа
         response_request = get_response_prompt(
             mentor_instructions=mentor_instructions,
             topics_covered=state["topics_covered"]
@@ -239,10 +233,11 @@ class Interviewer(BaseAgent):
         for attempt in range(MAX_RETRIES):
             try:
                 structured_llm = self.llm.with_structured_output(
-                    InterviewerResponseSchema,
+                    InterviewerResponseSchema,  # ← Схема БЕЗ is_role_exists
                     method="json_mode"
                 )
-                result = structured_llm.invoke(messages)
+                result = await structured_llm.ainvoke(messages)
+                logger.info(f"Interviewer.generate_response успешен")
                 return result  # Успех
                 
             except Exception as e:
@@ -251,7 +246,7 @@ class Interviewer(BaseAgent):
                 # Пробуем fallback
                 if attempt < MAX_RETRIES - 1:
                     try:
-                        response = self.llm.invoke(messages)
+                        response = await self.llm.ainvoke(messages)
                         content = response.content
                         content = re.sub(r'```json\s*', '', content)
                         content = re.sub(r'```\s*$', '', content)
@@ -262,7 +257,7 @@ class Interviewer(BaseAgent):
                         return result
                     except Exception as fallback_error:
                         logger.warning(f"Fallback провалился: {fallback_error}")
-                        time.sleep(RETRY_DELAY)
+                        await asyncio.sleep(RETRY_DELAY)
                         continue
         
         # Все попытки провалились
@@ -272,11 +267,8 @@ class Interviewer(BaseAgent):
 
 
 
-
-# пусть ходит в log
 class Manager(BaseAgent):
-    """Агент-менеджер для финального фидбэка."""
-    # дублирование кода как у еблана
+    # дублирование кода как у дибила
     # TODO: убрать дубли потом
     def _get_user_context(self, 
         name: str, 
@@ -298,9 +290,8 @@ class Manager(BaseAgent):
             - Off-topic: {off_top}"""
 
 
-    def generate_feedback(self, state: "InterviewState") -> FinalFeedback:
+    async def generate_feedback(self, state: "InterviewState") -> FinalFeedback:
         """Генерирует фидбэк на основе полной истории с повторными попытками."""
-        # Персона Manager
         system_prompt = get_manager_persona(state['position'], state['grade'])
         messages = [SystemMessage(content=system_prompt)]
         
@@ -317,26 +308,22 @@ class Manager(BaseAgent):
         )
         messages.append(SystemMessage(content=candidate_context))
         
-        # История диалога
         for turn in state["turns"]:
             messages.append(AIMessage(content=turn.agent_visible_message))
             if turn.user_message:
                 messages.append(HumanMessage(content=turn.user_message))
         
-        # Запрос фидбэка с Chain of Thoughts
         feedback_request = get_feedback_prompt()
         messages.append(HumanMessage(content=feedback_request))
         
-        # Используем retry логику
         for attempt in range(MAX_RETRIES):
             try:
                 structured_llm = self.llm.with_structured_output(
                     FinalFeedbackSchema,
                     method="json_mode"
                 )
-                result = structured_llm.invoke(messages)
+                result = await structured_llm.ainvoke(messages)
                 
-                # Конвертируем FinalFeedbackSchema в FinalFeedback dataclass
                 feedback = FinalFeedback(
                     grade=result.grade,
                     hiring_recommendation=result.hiring_recommendation,
@@ -354,15 +341,14 @@ class Manager(BaseAgent):
                 
                 logger.info(f"Manager.generate_feedback успешно завершён")
                 logger.debug(f"Manager thinking: {result.thinking[:200]}...")
-                return feedback  # Успех
+                return feedback
                 
             except Exception as e:
                 logger.warning(f"Manager.generate_feedback попытка {attempt + 1}/{MAX_RETRIES} провалилась: {e}")
                 
-                # Пробуем fallback
                 if attempt < MAX_RETRIES - 1:
                     try:
-                        response = self.llm.invoke(messages)
+                        response = await self.llm.ainvoke(messages)
                         content = response.content
                         content = re.sub(r'```json\s*', '', content)
                         content = re.sub(r'```\s*$', '', content)
@@ -389,9 +375,68 @@ class Manager(BaseAgent):
                         return feedback
                     except Exception as fallback_error:
                         logger.warning(f"Fallback провалился: {fallback_error}")
-                        time.sleep(RETRY_DELAY)
+                        await asyncio.sleep(RETRY_DELAY)
                         continue
         
-        # Все попытки провалились
         logger.error(f"Manager.generate_feedback: все {MAX_RETRIES} попытки провалились")
         raise Exception(f"Failed to generate feedback after {MAX_RETRIES} attempts")
+
+
+class VibeMaster(BaseAgent): # он же вайбдиллер
+    """Агент-анализатор настроения и намерений кандидата."""
+    
+    async def analyze_vibe(
+        self, 
+        user_message: str, 
+        conversation_context: str = ""
+    ) -> UserIntentSchema:
+    
+        persona_prompt = get_vibemaster_persona()
+        messages = [SystemMessage(content=persona_prompt)]
+        
+        if conversation_context:
+            messages.append(AIMessage(content=conversation_context))
+        
+        analysis_request = get_vibe_analysis_prompt()
+        messages.append(HumanMessage(content=f"{analysis_request}\n\nОтвет кандидата: \"{user_message}\""))
+        
+        for attempt in range(MAX_RETRIES):
+            try:
+                structured_llm = self.llm.with_structured_output(
+                    UserIntentSchema,
+                    method="json_mode"
+                )
+                result = await structured_llm.ainvoke(messages)
+                
+                logger.info(f"VibeMaster: wants_to_stop={result.wants_to_stop}, state={result.emotional_state}")
+                return result
+                
+            except Exception as e:
+                logger.warning(f"VibeMaster.analyze_vibe попытка {attempt + 1}/{MAX_RETRIES} провалилась: {e}")
+                
+                if attempt < MAX_RETRIES - 1:
+                    try:
+                        # Fallback парсинг
+                        response = await self.llm.ainvoke(messages)
+                        content = response.content
+                        content = re.sub(r'```json\s*', '', content)
+                        content = re.sub(r'```\s*$', '', content)
+                        
+                        parsed = json.loads(content)
+                        result = UserIntentSchema(**parsed)
+                        logger.info(f"Fallback успешен на попытке {attempt + 1}")
+                        return result
+                    except Exception as fallback_error:
+                        logger.warning(f"Fallback провалился: {fallback_error}")
+                        await asyncio.sleep(RETRY_DELAY)
+                        continue
+        
+        # Все попытки провалились - возвращаем дефолт (продолжаем интервью)
+        logger.error("VibeMaster: все попытки провалились, предполагаем что кандидат хочет продолжить")
+        return UserIntentSchema(
+            thinking="Не удалось определить намерение, продолжаем интервью по умолчанию",
+            wants_to_stop=False,
+            stop_reason=None,
+            emotional_state="neutral",
+            confidence_level=0
+        )
