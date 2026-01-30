@@ -6,7 +6,7 @@ from src.promts.mentor import get_mentor_persona, get_analyze_prompt
 from src.promts.interviewer import get_interviewer_persona, get_greeting_prompt, get_response_prompt
 from src.promts.manager import get_manager_persona, get_feedback_prompt
 from src.promts.vibemaster import get_vibemaster_persona, get_vibe_analysis_prompt
-from src.utils import get_openrouter_llm
+from src.utils import get_openrouter_llm, clean_surrogate_characters
 from src.structs.structs import MentorAnalysis, CalibrationResult, FinalFeedback
 from src.structs.schemas import (
     MentorAnalysisSchema, 
@@ -99,6 +99,7 @@ class Mentor(BaseAgent):
             response = await self.llm.ainvoke(messages)
             
             content = response.content
+            content = clean_surrogate_characters(content)  # Очищаем от суррогатных символов
             content = re.sub(r'```json\s*', '', content)
             content = re.sub(r'```\s*$', '', content)
             
@@ -193,6 +194,7 @@ class Interviewer(BaseAgent):
                     try:
                         response = await self.llm.ainvoke(messages)
                         content = response.content
+                        content = clean_surrogate_characters(content)  # Очищаем от суррогатных символов
                         content = re.sub(r'```json\s*', '', content)
                         content = re.sub(r'```\s*$', '', content)
                         
@@ -266,6 +268,7 @@ class Interviewer(BaseAgent):
                     try:
                         response = await self.llm.ainvoke(messages)
                         content = response.content
+                        content = clean_surrogate_characters(content)  # Очищаем от суррогатных символов
                         content = re.sub(r'```json\s*', '', content)
                         content = re.sub(r'```\s*$', '', content)
                         
@@ -374,6 +377,7 @@ class Manager(BaseAgent):
                     try:
                         response = await self.llm.ainvoke(messages)
                         content = response.content
+                        content = clean_surrogate_characters(content)  # Очищаем от суррогатных символов
                         content = re.sub(r'```json\s*', '', content)
                         content = re.sub(r'```\s*$', '', content)
                         
@@ -449,6 +453,7 @@ class VibeMaster(BaseAgent): # он же вайбдиллер
                         # Fallback парсинг
                         response = await self.llm.ainvoke(messages)
                         content = response.content
+                        content = clean_surrogate_characters(content)  # Очищаем от суррогатных символов
                         content = re.sub(r'```json\s*', '', content)
                         content = re.sub(r'```\s*$', '', content)
                         
