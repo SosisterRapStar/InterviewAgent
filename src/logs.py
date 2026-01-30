@@ -15,11 +15,6 @@ stderr_handler = logging.StreamHandler(sys.stderr)
 logger.setLevel(logging.DEBUG)
 logger.setLevel(logging.INFO)
 
-# Log messages
-logger.info("This is an informational message", extra={"user": "admin"})
-logger.warning("This is a warning message")
-
-
 # лог может быть постоянной памятью
 # нужно суммаризировать ответы пользователя 
 class InterviewLogger:
