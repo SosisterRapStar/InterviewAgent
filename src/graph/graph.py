@@ -146,15 +146,16 @@ async def user_input_node(state: InterviewState) -> InterviewState:
         state["off_topic_attempts"] += 1
     
     # Сохраняем результат вопроса
-    question_result = QuestionResult(
-        topic=calibration.topic_recommendation or "общее",
-        question=state["turns"][-1].agent_visible_message,
-        user_answer=state["current_user_message"],
-        is_correct=(analysis.answer_type in ["correct", "partial"]),
-        correct_answer=analysis.correct_info if analysis.factual_errors else None,
-        confidence=analysis.confidence_score / 100.0
-    )
-    state["question_results"].append(question_result)
+    if state["step_counter"] > 0:
+        question_result = QuestionResult(
+            topic=calibration.topic_recommendation or "общее",
+            question=state["turns"][-1].agent_visible_message,
+            user_answer=state["current_user_message"],
+            is_correct=(analysis.answer_type in ["correct", "partial"]),
+            correct_answer=analysis.correct_info if analysis.factual_errors else None,
+            confidence=analysis.confidence_score / 100.0
+        )
+        state["question_results"].append(question_result)
     
     logger.log_agent_action("Mentor", "Анализ завершён", {
         "answer_type": analysis.answer_type,
@@ -320,19 +321,14 @@ def build_interview_graph() -> StateGraph:
     workflow.add_node("interviewer", interviewer_node)
     workflow.add_node("manager", manager_node)
     
-    # Устанавливаем точку входа
     workflow.set_entry_point("start")
-    
-    # Связываем узлы
     workflow.add_edge("start", "user_input")
-    
-    # Условный переход после user_input (VibeMaster + Mentor уже выполнены)
     workflow.add_conditional_edges(
         "user_input",
-        route_after_user_input,  # Используем функцию-роутер
+        route_after_user_input,
         {
-            "interviewer": "interviewer",  # Продолжаем интервью (Mentor уже выполнен)
-            "manager": "manager"           # Идём к финальному фидбэку
+            "interviewer": "interviewer",
+            "manager": "manager"
         }
     )
     
@@ -341,8 +337,8 @@ def build_interview_graph() -> StateGraph:
         "interviewer",
         check_finish_node,
         {
-            "continue": "user_input",  # Возвращаемся к вводу пользователя
-            "finish": "manager"         # Идём к финальному фидбэку
+            "continue": "user_input", 
+            "finish": "manager"
         }
     )
     

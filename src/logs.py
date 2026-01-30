@@ -8,22 +8,12 @@ if TYPE_CHECKING:
     from src.graph.state import InterviewState
 import logging 
 import sys
-from config import LOKI_ENDPOINT
-from logging_loki import Lokihandler
 
-
-
-handler = Lokihandler(
-    url=LOKI_ENDPOINT, 
-    tags={"application": "my-python-app"},
-    version="1",
-)
 
 logger = logging.getLogger('agents')
 stderr_handler = logging.StreamHandler(sys.stderr)
 logger.setLevel(logging.DEBUG)
 logger.setLevel(logging.INFO)
-logger.addHandler(handler)
 
 # Log messages
 logger.info("This is an informational message", extra={"user": "admin"})
@@ -56,6 +46,30 @@ class InterviewLogger:
         )
     
     def save_session(self) -> None:
+        feedback = self.current_unit.final_feedback
+        
+        roadmap = ""
+        for item in feedback["roadmap"]:
+            roadmap += f"   • {item}\n"
+        
+        # hotfix
+        string_feedback = f"""Фидбэк
+Вердикт: {feedback['grade']} | {feedback['hiring_recommendation']}
+Уверенность: {feedback['confidence_score']}%
+
+Подтверждённые навыки: {', '.join(feedback['confirmed_skills'])}
+Пробелы: {len(feedback['knowledge_gaps'])} тем
+
+Soft Skills:
+Ясность: {feedback['clarity']}
+Честность: {feedback['honesty']}
+Вовлечённость: {feedback['engagement']}
+
+Рекомендации к изучению:
+{roadmap}"""
+        
+        self.current_unit.final_feedback = string_feedback
+        
         with open(self.output_path, 'w', encoding='utf-8') as f:
             json.dump(asdict(self.current_unit), f, ensure_ascii=False, indent=2)
     

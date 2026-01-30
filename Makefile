@@ -1,7 +1,19 @@
+.PHONY: help build run run-interactive stop clean logs shell
 
-.PHONY: local_run
-local_run:
-	echo "Start agent"
-	python3 main.py 
+build:
+	docker compose build
 
- 
+run:
+	docker compose up
+
+run-interactive:
+	docker compose run --rm interview-agent
+
+stop:
+	docker compose down
+
+shell:
+	docker exec -it interview-agent bash
+
+clean:
+	docker-compose down

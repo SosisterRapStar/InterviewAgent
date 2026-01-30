@@ -9,10 +9,10 @@ async def main():
     print("Interview Multi-Agent System\n")
     
     print("Введите данные кандидата:")
-    participant_name = input("Имя: ").strip() or "Иван Иванов"
-    position = input("Позиция (например: Python Developer): ").strip() or "Python Developer"
-    grade = input("Грейд (Junior/Middle/Senior): ").strip() or "Middle"
-    experience = input("Опыт работы: ").strip() or "2 года коммерческой разработки"
+    participant_name = input("Имя: ").strip()
+    position = input("Позиция (например: Python Developer): ").strip()
+    grade = input("Грейд (Junior/Middle/Senior): ").strip()
+    experience = input("Опыт работы: ").strip()
     
     initial_state = create_initial_state(
         participant_name=participant_name,
