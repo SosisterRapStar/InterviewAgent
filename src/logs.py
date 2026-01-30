@@ -10,10 +10,27 @@ import logging
 import sys
 
 
+# Настраиваем logger с обработкой ошибок кодирования
 logger = logging.getLogger('agents')
-stderr_handler = logging.StreamHandler(sys.stderr)
-logger.setLevel(logging.DEBUG)
-logger.setLevel(logging.INFO)
+
+# Создаем handler с явной обработкой ошибок UTF-8
+class SafeStreamHandler(logging.StreamHandler):
+    """StreamHandler с безопасной обработкой суррогатных символов."""
+    
+    def emit(self, record):
+        try:
+            msg = self.format(record)
+            # Очищаем суррогатные символы перед выводом
+            msg = msg.encode('utf-8', errors='ignore').decode('utf-8', errors='ignore')
+            stream = self.stream
+            stream.write(msg + self.terminator)
+            self.flush()
+        except Exception:
+            self.handleError(record)
+
+stderr_handler = SafeStreamHandler(sys.stderr)
+logger.addHandler(stderr_handler)
+logger.setLevel(logging.ERROR)
 
 # лог может быть постоянной памятью
 # нужно суммаризировать ответы пользователя 

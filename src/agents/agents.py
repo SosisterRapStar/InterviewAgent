@@ -187,7 +187,9 @@ class Interviewer(BaseAgent):
                 return result  # Успех
                 
             except Exception as e:
-                logger.warning(f"Interviewer.generate_greeting попытка {attempt + 1}/{MAX_RETRIES} провалилась: {e}")
+                # Безопасное логирование с очисткой суррогатных символов
+                error_msg = clean_surrogate_characters(str(e))
+                logger.warning(f"Interviewer.generate_greeting попытка {attempt + 1}/{MAX_RETRIES} провалилась: {error_msg}")
                 
                 # Пробуем fallback
                 if attempt < MAX_RETRIES - 1:
@@ -209,7 +211,9 @@ class Interviewer(BaseAgent):
                         logger.info(f"Fallback парсинг успешен на попытке {attempt + 1}")
                         return result
                     except Exception as fallback_error:
-                        logger.warning(f"Fallback провалился: {fallback_error}")
+                        # Безопасное логирование с очисткой суррогатных символов
+                        error_msg = clean_surrogate_characters(str(fallback_error))
+                        logger.warning(f"Fallback провалился: {error_msg}")
                         await asyncio.sleep(RETRY_DELAY)
                         continue
         
@@ -261,7 +265,9 @@ class Interviewer(BaseAgent):
                 return result  # Успех
                 
             except Exception as e:
-                logger.warning(f"Interviewer.generate_response попытка {attempt + 1}/{MAX_RETRIES} провалилась: {e}")
+                # Безопасное логирование с очисткой суррогатных символов
+                error_msg = clean_surrogate_characters(str(e))
+                logger.warning(f"Interviewer.generate_response попытка {attempt + 1}/{MAX_RETRIES} провалилась: {error_msg}")
                 
                 # Пробуем fallback
                 if attempt < MAX_RETRIES - 1:
@@ -283,7 +289,9 @@ class Interviewer(BaseAgent):
                         logger.info(f"Fallback парсинг успешен на попытке {attempt + 1}")
                         return result
                     except Exception as fallback_error:
-                        logger.warning(f"Fallback провалился: {fallback_error}")
+                        # Безопасное логирование с очисткой суррогатных символов
+                        error_msg = clean_surrogate_characters(str(fallback_error))
+                        logger.warning(f"Fallback провалился: {error_msg}")
                         await asyncio.sleep(RETRY_DELAY)
                         continue
         
@@ -371,7 +379,9 @@ class Manager(BaseAgent):
                 return feedback
                 
             except Exception as e:
-                logger.warning(f"Manager.generate_feedback попытка {attempt + 1}/{MAX_RETRIES} провалилась: {e}")
+                # Безопасное логирование с очисткой суррогатных символов
+                error_msg = clean_surrogate_characters(str(e))
+                logger.warning(f"Manager.generate_feedback попытка {attempt + 1}/{MAX_RETRIES} провалилась: {error_msg}")
                 
                 if attempt < MAX_RETRIES - 1:
                     try:
@@ -408,7 +418,9 @@ class Manager(BaseAgent):
                         logger.info(f"Fallback парсинг успешен на попытке {attempt + 1}")
                         return feedback
                     except Exception as fallback_error:
-                        logger.warning(f"Fallback провалился: {fallback_error}")
+                        # Безопасное логирование с очисткой суррогатных символов
+                        error_msg = clean_surrogate_characters(str(fallback_error))
+                        logger.warning(f"Fallback провалился: {error_msg}")
                         await asyncio.sleep(RETRY_DELAY)
                         continue
         
@@ -446,7 +458,9 @@ class VibeMaster(BaseAgent): # он же вайбдиллер
                 return result
                 
             except Exception as e:
-                logger.warning(f"VibeMaster.analyze_vibe попытка {attempt + 1}/{MAX_RETRIES} провалилась: {e}")
+                # Безопасное логирование с очисткой суррогатных символов
+                error_msg = clean_surrogate_characters(str(e))
+                logger.warning(f"VibeMaster.analyze_vibe попытка {attempt + 1}/{MAX_RETRIES} провалилась: {error_msg}")
                 
                 if attempt < MAX_RETRIES - 1:
                     try:
@@ -468,7 +482,9 @@ class VibeMaster(BaseAgent): # он же вайбдиллер
                         logger.info(f"Fallback успешен на попытке {attempt + 1}")
                         return result
                     except Exception as fallback_error:
-                        logger.warning(f"Fallback провалился: {fallback_error}")
+                        # Безопасное логирование с очисткой суррогатных символов
+                        error_msg = clean_surrogate_characters(str(fallback_error))
+                        logger.warning(f"Fallback провалился: {error_msg}")
                         await asyncio.sleep(RETRY_DELAY)
                         continue
         
