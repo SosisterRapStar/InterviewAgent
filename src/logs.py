@@ -7,11 +7,27 @@ from src.structs.structs import LogUnit
 if TYPE_CHECKING:
     from src.graph.state import InterviewState
 import logging 
-import sys 
+import sys
+from config import LOKI_ENDPOINT
+from logging_loki import Lokihandler
+
+
+
+handler = Lokihandler(
+    url=LOKI_ENDPOINT, 
+    tags={"application": "my-python-app"},
+    version="1",
+)
 
 logger = logging.getLogger('agents')
 stderr_handler = logging.StreamHandler(sys.stderr)
 logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
+logger.addHandler(handler)
+
+# Log messages
+logger.info("This is an informational message", extra={"user": "admin"})
+logger.warning("This is a warning message")
 
 
 # лог может быть постоянной памятью
