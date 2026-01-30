@@ -4,9 +4,6 @@ build:
 	docker compose build
 
 run:
-	docker compose up
-
-run-interactive:
 	docker compose run --rm interview-agent
 
 stop:
