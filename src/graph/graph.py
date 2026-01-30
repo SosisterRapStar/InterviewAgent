@@ -308,7 +308,6 @@ async def manager_node(state: InterviewState) -> InterviewState:
     
     return state
 
-
 def build_interview_graph() -> StateGraph:
     """Строит граф интервью с параллельным выполнением VibeMaster + Mentor."""
     

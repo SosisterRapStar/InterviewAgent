@@ -23,7 +23,7 @@ async def main():
     
     workflow = build_interview_graph()
     app = workflow.compile()
-    
+    mermaid_code = app.get_graph().draw_mermaid()
     try:
         final_state = await app.ainvoke(initial_state)
         

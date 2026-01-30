@@ -105,12 +105,24 @@ class Mentor(BaseAgent):
             # Парсим JSON
             try:
                 parsed = json.loads(content)
+                
+                # Конвертация thinking из dict в string если LLM вернул словарь
+                if isinstance(parsed.get('thinking'), dict):
+                    thinking_dict = parsed['thinking']
+                    parsed['thinking'] = '\n'.join([f"{k}: {v}" for k, v in thinking_dict.items()])
+                
                 result = MentorAnalysisSchema(**parsed)
             except json.JSONDecodeError:
                 # Если JSON невалидный, пытаемся найти JSON объект в тексте
                 json_match = re.search(r'\{[\s\S]*\}', content)
                 if json_match:
                     parsed = json.loads(json_match.group())
+                    
+                    # Конвертация thinking из dict в string если LLM вернул словарь
+                    if isinstance(parsed.get('thinking'), dict):
+                        thinking_dict = parsed['thinking']
+                        parsed['thinking'] = '\n'.join([f"{k}: {v}" for k, v in thinking_dict.items()])
+                    
                     result = MentorAnalysisSchema(**parsed)
                 else:
                     # даем челу на интервьюере базовые рекомендации
@@ -185,6 +197,12 @@ class Interviewer(BaseAgent):
                         content = re.sub(r'```\s*$', '', content)
                         
                         parsed = json.loads(content)
+                        
+                        # Конвертация thinking из dict в string если LLM вернул словарь
+                        if isinstance(parsed.get('thinking'), dict):
+                            thinking_dict = parsed['thinking']
+                            parsed['thinking'] = '\n'.join([f"{k}: {v}" for k, v in thinking_dict.items()])
+                        
                         result = InterviewerGreetingSchema(**parsed)
                         logger.info(f"Fallback парсинг успешен на попытке {attempt + 1}")
                         return result
@@ -252,6 +270,12 @@ class Interviewer(BaseAgent):
                         content = re.sub(r'```\s*$', '', content)
                         
                         parsed = json.loads(content)
+                        
+                        # Конвертация thinking из dict в string если LLM вернул словарь
+                        if isinstance(parsed.get('thinking'), dict):
+                            thinking_dict = parsed['thinking']
+                            parsed['thinking'] = '\n'.join([f"{k}: {v}" for k, v in thinking_dict.items()])
+                        
                         result = InterviewerResponseSchema(**parsed)
                         logger.info(f"Fallback парсинг успешен на попытке {attempt + 1}")
                         return result
@@ -354,6 +378,12 @@ class Manager(BaseAgent):
                         content = re.sub(r'```\s*$', '', content)
                         
                         parsed = json.loads(content)
+                        
+                        # Конвертация thinking из dict в string если LLM вернул словарь
+                        if isinstance(parsed.get('thinking'), dict):
+                            thinking_dict = parsed['thinking']
+                            parsed['thinking'] = '\n'.join([f"{k}: {v}" for k, v in thinking_dict.items()])
+                        
                         result = FinalFeedbackSchema(**parsed)
                         
                         feedback = FinalFeedback(
@@ -423,6 +453,12 @@ class VibeMaster(BaseAgent): # он же вайбдиллер
                         content = re.sub(r'```\s*$', '', content)
                         
                         parsed = json.loads(content)
+                        
+                        # Конвертация thinking из dict в string если LLM вернул словарь
+                        if isinstance(parsed.get('thinking'), dict):
+                            thinking_dict = parsed['thinking']
+                            parsed['thinking'] = '\n'.join([f"{k}: {v}" for k, v in thinking_dict.items()])
+                        
                         result = UserIntentSchema(**parsed)
                         logger.info(f"Fallback успешен на попытке {attempt + 1}")
                         return result
