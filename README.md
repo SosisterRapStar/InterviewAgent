@@ -138,7 +138,7 @@ InterviewAgent/
 │   ├── structs/
 │   │   ├── schemas.py      # Pydantic схемы для structured output
 │   │   └── structs.py      # Dataclasses (Turn, MentorAnalysis, и т.д.)
-│   ├── logs.py             # Логирование с SafeStreamHandler
+│   ├── logs.py             # Логирование
 │   ├── utils.py            # Утилиты (clean_surrogate_characters)
 │   └── config.py           # Конфигурация
 ├── logs/                   # Логи интервью (JSON)
